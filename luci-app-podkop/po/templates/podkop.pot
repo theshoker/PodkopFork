@@ -1227,3 +1227,36 @@ msgstr ""
 
 msgid "Error: "
 msgstr ""
+
+msgid "Proxy Mode"
+msgstr ""
+
+msgid "Single"
+msgstr ""
+
+msgid "Failover"
+msgstr ""
+
+msgid "Proxy List for Failover"
+msgstr ""
+
+msgid "Add multiple vless:// or ss:// strings."
+msgstr ""
+
+msgid "Check Interval (s)"
+msgstr ""
+
+msgid "Latency Tolerance (ms)"
+msgstr ""
+
+msgid "Advanced Settings"
+msgstr ""
+
+msgid "Check URL"
+msgstr ""
+
+msgid "Idle Timeout"
+msgstr ""
+
+msgid "Interrupt Connections"
+msgstr ""
