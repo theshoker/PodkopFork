@@ -873,3 +873,36 @@ msgstr "Обновление списков не удалось"
 
 msgid "Error: "
 msgstr "Ошибка: "
+
+msgid "Proxy Mode"
+msgstr "Режим прокси"
+
+msgid "Single"
+msgstr "Одиночный"
+
+msgid "Failover"
+msgstr "Отказоустойчивый"
+
+msgid "Proxy List for Failover"
+msgstr "Список прокси для отказоустойчивости"
+
+msgid "Add multiple vless:// or ss:// strings."
+msgstr "Добавьте несколько ссылок vless:// или ss://."
+
+msgid "Check Interval (s)"
+msgstr "Интервал проверки (с)"
+
+msgid "Latency Tolerance (ms)"
+msgstr "Допуск задержки (мс)"
+
+msgid "Advanced Settings"
+msgstr "Расширенные настройки"
+
+msgid "Check URL"
+msgstr "URL для проверки"
+
+msgid "Idle Timeout"
+msgstr "Таймаут бездействия"
+
+msgid "Interrupt Connections"
+msgstr "Прерывать соединения"

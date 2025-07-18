@@ -1029,6 +1029,64 @@ sing_box_outdound() {
                 return
             fi
         else
+            config_get proxy_selector_mode "$section" "proxy_selector_mode" "default"
+
+            if [ "$proxy_selector_mode" = "urltest" ]; then
+                log "Using failover (url-test) for proxy group"
+                
+                local proxy_tags=""
+                local i=0
+                
+                config_list_foreach "$section" "proxy_list" | while read -r proxy_string; do
+                    [ -z "$proxy_string" ] && continue
+                    local tag="${section}-proxy-$i"
+                    [ -n "$proxy_tags" ] && proxy_tags="$proxy_tags, "
+                    proxy_tags="$proxy_tags\"$tag\""
+                    
+                    if echo "$proxy_string" | grep -q '^ss://'; then
+                        config_get ss_uot "$section" "ss_uot" "0"
+                        sing_box_config_shadowsocks "$tag" "$proxy_string" "$ss_uot"
+                    elif echo "$proxy_string" | grep -q '^vless://'; then
+                        sing_box_config_vless "$tag" "$proxy_string"
+                    fi
+                    i=$((i+1))
+                done
+
+                if [ -z "$proxy_tags" ]; then
+                    log "[critical] Failover mode is selected for section '$section' but proxy list is empty. Creating a block outbound as a fallback."
+                    jq --arg section "$section" '.outbounds += [{"tag": $section, "type": "block"}]' "$SING_BOX_CONFIG" | build_sing_box_config
+                    return
+                fi
+
+                config_get urltest_interval "$section" "urltest_interval" "60"
+                config_get urltest_tolerance "$section" "urltest_tolerance" "0"
+                config_get urltest_url "$section" "urltest_url" ""
+                config_get urltest_idle_timeout "$section" "urltest_idle_timeout" ""
+                config_get_bool urltest_interrupt_connections "$section" "urltest_interrupt_connections" 0
+
+                jq --arg section "$section" \
+                   --argjson proxies "[$proxy_tags]" \
+                   --arg interval "${urltest_interval}s" \
+                   --argjson tolerance "$urltest_tolerance" \
+                   --arg url "$urltest_url" \
+                   --arg idle_timeout "$urltest_idle_timeout" \
+                   --argjson interrupt_connections "$urltest_interrupt_connections" \
+                '.outbounds |= (map(select(.tag!=$section)) + [{
+                    "tag": $section,
+                    "type": "urltest",
+                    "outbounds": $proxies,
+                    "interval": $interval,
+                    "tolerance": $tolerance,
+                    "interrupt_exist_connections": $interrupt_connections
+                } + 
+                (if $url != "" then {"url": $url} else {} end) +
+                (if $idle_timeout != "" then {"idle_timeout": $idle_timeout} else {} end)
+                ])' "$SING_BOX_CONFIG" | build_sing_box_config
+                
+                return
+            fi
+
+            log "Using single proxy mode"
             config_get proxy_string $section "proxy_string"
             
             # Extract the first non-comment line as the active configuration

@@ -20,6 +20,37 @@ function validateUrl(url, protocols = ['http:', 'https:']) {
 
 function createConfigSection(section, map, network) {
     const s = section;
+    function validateProxyURL(url) {
+        if (!url) return true;
+        if (!url.startsWith('vless://') && !url.startsWith('ss://')) {
+            return _('URL must start with vless:// or ss://');
+        }
+        try {
+            if (url.startsWith('ss://')) {
+                let encrypted_part;
+                try {
+                    encrypted_part = url.split('/')[2].split('@')[0];
+                    atob(encrypted_part);
+                } catch (e) {
+                    if (!encrypted_part.includes(':')) return _('Invalid SS format: missing separator');
+                }
+                let serverPart = url.split('@')[1];
+                if (!serverPart) return _('Invalid SS format: missing server');
+                let port = serverPart.split(/[?#]/)[0].split(':')[1];
+                if (!port || isNaN(parseInt(port))) return _('Invalid SS format: missing port');
+            }
+            if (url.startsWith('vless://')) {
+                if (!url.split('/')[2].split('@')[0]) return _('Invalid VLESS format: missing UUID');
+                let serverPart = url.split('@')[1];
+                if (!serverPart) return _('Invalid VLESS format: missing server');
+                let port = serverPart.split(/[?#]/)[0].split(':')[1];
+                if (!port || isNaN(parseInt(port))) return _('Invalid VLESS format: missing port');
+            }
+        } catch (e) {
+            return _('Validation error in "') + url.substring(0, 20) + '...": ' + e.message;
+        }
+        return true;
+    }
 
     let o = s.tab('basic', _('Basic Settings'));
 
@@ -37,7 +68,7 @@ function createConfigSection(section, map, network) {
     o.ucisection = s.section;
 
     o = s.taboption('basic', form.TextValue, 'proxy_string', _('Proxy Configuration URL'), _(''));
-    o.depends('proxy_config_type', 'url');
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'default' });
     o.rows = 5;
     o.rmempty = false;
     o.ucisection = s.section;
@@ -191,6 +222,58 @@ function createConfigSection(section, map, network) {
     o = s.taboption('basic', form.TextValue, 'outbound_json', _('Outbound Configuration'), _('Enter complete outbound configuration in JSON format'));
     o.depends('proxy_config_type', 'outbound');
     o.rows = 10;
+	o = s.taboption('basic', form.ListValue, 'proxy_selector_mode', _('Proxy Mode'));
+    o.value('default', _('Single'));
+    o.value('urltest', _('Failover'));
+    o.default = 'default';
+    o.depends({ mode: 'proxy', proxy_config_type: 'url' });
+    o.ucisection = s.section;
+
+    o = s.taboption('basic', form.DynamicList, 'proxy_list', _('Proxy List for Failover'), _('Add multiple vless:// or ss:// strings.'));
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest' });
+    o.rmempty = false;
+    o.ucisection = s.section;
+    o.validate = function (section_id, value) {
+        return validateProxyURL(value);
+    };
+
+    o = s.taboption('basic', form.Value, 'urltest_interval', _('Check Interval (s)'));
+    o.placeholder = '60';
+    o.datatype = 'uinteger';
+    o.rmempty = true;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest' });
+    o.ucisection = s.section;
+
+    o = s.taboption('basic', form.Value, 'urltest_tolerance', _('Latency Tolerance (ms)'));
+    o.placeholder = '0';
+    o.datatype = 'uinteger';
+    o.rmempty = true;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest' });
+    o.ucisection = s.section;
+
+	o = s.taboption('basic', form.Flag, 'urltest_advanced_options', _('Advanced Settings'));
+    o.default = '0';
+    o.rmempty = false;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest' });
+    o.ucisection = s.section;
+
+    o = s.taboption('basic', form.Value, 'urltest_url', _('Check URL'));
+    o.placeholder = 'http://www.gstatic.com/generate_204';
+    o.rmempty = true;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest', urltest_advanced_options: '1' });
+    o.ucisection = s.section;
+
+    o = s.taboption('basic', form.Value, 'urltest_idle_timeout', _('Idle Timeout'));
+    o.placeholder = '30m';
+    o.rmempty = true;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest', urltest_advanced_options: '1' });
+    o.ucisection = s.section;
+
+    o = s.taboption('basic', form.Flag, 'urltest_interrupt_connections', _('Interrupt Connections'));
+    o.default = '0';
+    o.rmempty = false;
+    o.depends({ proxy_config_type: 'url', proxy_selector_mode: 'urltest', urltest_advanced_options: '1' });
+    o.ucisection = s.section;
     o.ucisection = s.section;
     o.validate = function (section_id, value) {
         if (!value || value.length === 0) return true;
